@@ -7,7 +7,8 @@
         GlobalExceptionMapper::handle_global_exceptions([&] { throw; }, callback );   \
 
 #define HANDLE_CUSTOM_EXCEPTIONS_END(exceptionMapper)                                 \
-        exceptionMapper.handle_exceptions([&] { throw; }, callback);                  \
-        GlobalExceptionMapper::handle_global_exceptions([&] { throw; }, callback );   \
+        GlobalExceptionMapper::handle_global_exceptions([&] {               \
+            exceptionMapper.handle_exceptions([&] { throw; }, callback);    \
+        }, callback );
 
 #endif //DATABASE_API_EXCEPTION_MAPPER_MACROS_HPP
