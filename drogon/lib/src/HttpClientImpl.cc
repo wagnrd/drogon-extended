@@ -304,7 +304,8 @@ void HttpClientImpl::sendRequestInLoop(const drogon::HttpRequestPtr &req,
     if (!static_cast<drogon::HttpRequestImpl *>(req.get())->passThrough())
     {
         req->addHeader("connection", "Keep-Alive");
-        req->addHeader("user-agent", "DrogonClient");
+        if (!userAgent_.empty())
+            req->addHeader("user-agent", userAgent_);
     }
     // Set the host header.
     if (!domain_.empty())
@@ -548,7 +549,12 @@ void HttpClientImpl::onRecvMessage(const trantor::TcpConnectionPtr &connPtr,
     auto msgSize = msg->readableBytes();
     while (msg->readableBytes() > 0)
     {
-        assert(!pipeliningCallbacks_.empty());
+        if (pipeliningCallbacks_.empty())
+        {
+            LOG_ERROR << "More responses than expected!";
+            connPtr->shutdown();
+            return;
+        }
         auto &firstReq = pipeliningCallbacks_.front();
         if (firstReq.first->method() == Head)
         {

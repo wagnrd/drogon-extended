@@ -30,6 +30,7 @@
 #include "SharedLibManager.h"
 #include "SessionManager.h"
 #include "DbClientManager.h"
+#include "RedisClientManager.h"
 #include <drogon/config.h>
 #include <algorithm>
 #include <drogon/version.h>
@@ -86,6 +87,7 @@ HttpAppFrameworkImpl::HttpAppFrameworkImpl()
       listenerManagerPtr_(new ListenerManager),
       pluginsManagerPtr_(new PluginsManager),
       dbClientManagerPtr_(new orm::DbClientManager),
+      redisClientManagerPtr_(new nosql::RedisClientManager),
       uploadPath_(rootPath_ + "uploads")
 {
 }
@@ -116,7 +118,18 @@ HttpResponsePtr defaultErrorHandler(HttpStatusCode code)
     return std::make_shared<HttpResponseImpl>(code, CT_TEXT_HTML);
 }
 
-static void godaemon(void)
+void defaultExceptionHandler(
+    const std::exception &e,
+    const HttpRequestPtr &req,
+    std::function<void(const HttpResponsePtr &)> &&callback)
+{
+    LOG_ERROR << "Unhandled exception in " << req->query()
+              << ", what():" << e.what();
+    const auto &handler = app().getCustomErrorHandler();
+    callback(handler(k500InternalServerError));
+}
+
+static void godaemon()
 {
     printf("Initializing daemon mode\n");
 #ifndef _WIN32
@@ -374,7 +387,7 @@ HttpAppFramework &HttpAppFrameworkImpl::setLogPath(
     const std::string &logfileBaseName,
     size_t logfileSize)
 {
-    if (logPath == "")
+    if (logPath.empty())
         return *this;
 #ifdef _WIN32
     if (_access(logPath.c_str(), 0) != 0)
@@ -463,7 +476,10 @@ void HttpAppFrameworkImpl::run()
         getLoop()->resetAfterFork();
 #endif
     }
-    signal(SIGTERM, TERMFunction);
+    if (handleSigterm_)
+    {
+        signal(SIGTERM, TERMFunction);
+    }
     // set logger
     if (!logPath_.empty())
     {
@@ -479,7 +495,7 @@ void HttpAppFrameworkImpl::run()
         else
         {
             std::string baseName = logfileBaseName_;
-            if (baseName == "")
+            if (baseName.empty())
             {
                 baseName = "drogon";
             }
@@ -501,8 +517,9 @@ void HttpAppFrameworkImpl::run()
 #ifndef _WIN32
     if (!libFilePaths_.empty())
     {
-        sharedLibManagerPtr_ = std::unique_ptr<SharedLibManager>(
-            new SharedLibManager(libFilePaths_, libFileOutputPath_));
+        sharedLibManagerPtr_ =
+            std::make_unique<SharedLibManager>(libFilePaths_,
+                                               libFileOutputPath_);
     }
 #endif
     // Create all listeners.
@@ -525,11 +542,11 @@ void HttpAppFrameworkImpl::run()
     // loop, so put the main loop into ioLoops.
     ioLoops.push_back(getLoop());
     dbClientManagerPtr_->createDbClients(ioLoops);
-
+    redisClientManagerPtr_->createRedisClients(ioLoops);
     if (useSession_)
     {
-        sessionManagerPtr_ = std::unique_ptr<SessionManager>(
-            new SessionManager(getLoop(), sessionTimeout_));
+        sessionManagerPtr_ =
+            std::make_unique<SessionManager>(getLoop(), sessionTimeout_);
     }
 
     // Initialize plugins
@@ -849,9 +866,6 @@ HttpAppFramework &HttpAppFramework::instance()
     return HttpAppFrameworkImpl::instance();
 }
 
-HttpAppFramework::~HttpAppFramework()
-{
-}
 void HttpAppFrameworkImpl::forward(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback,
@@ -923,6 +937,16 @@ orm::DbClientPtr HttpAppFrameworkImpl::getFastDbClient(const std::string &name)
 {
     return dbClientManagerPtr_->getFastDbClient(name);
 }
+nosql::RedisClientPtr HttpAppFrameworkImpl::getRedisClient(
+    const std::string &name)
+{
+    return redisClientManagerPtr_->getRedisClient(name);
+}
+nosql::RedisClientPtr HttpAppFrameworkImpl::getFastRedisClient(
+    const std::string &name)
+{
+    return redisClientManagerPtr_->getFastRedisClient(name);
+}
 HttpAppFramework &HttpAppFrameworkImpl::createDbClient(
     const std::string &dbType,
     const std::string &host,
@@ -951,6 +975,19 @@ HttpAppFramework &HttpAppFrameworkImpl::createDbClient(
     return *this;
 }
 
+HttpAppFramework &HttpAppFrameworkImpl::createRedisClient(
+    const std::string &ip,
+    unsigned short port,
+    const std::string &name,
+    const std::string &password,
+    size_t connectionNum,
+    bool isFast)
+{
+    assert(!running_);
+    redisClientManagerPtr_->createRedisClient(
+        name, ip, port, password, connectionNum, isFast);
+    return *this;
+}
 void HttpAppFrameworkImpl::quit()
 {
     if (getLoop()->isRunning())
