@@ -51,6 +51,9 @@ if (BUILD_DROGON_SHARED)
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIB_DIR}")
     endif ("${isSystemDir}" STREQUAL "-1")
     add_library(${PROJECT_NAME} SHARED)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VERSION ${DROGON_VERSION}
+        SOVERSION ${DROGON_MAJOR_VERSION})
     target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
     if(WIN32)
       target_link_libraries(${PROJECT_NAME} PUBLIC Rpcrt4 ws2_32)
@@ -65,6 +68,10 @@ if (BUILD_DROGON_SHARED)
 else (BUILD_DROGON_SHARED)
     add_library(${PROJECT_NAME} STATIC)
 endif (BUILD_DROGON_SHARED)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES GNU)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
+endif()
 
 include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME} EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/exports/drogon/exports.h)
@@ -192,6 +199,7 @@ set(DROGON_SOURCES
     lib/src/SecureSSLRedirector.cc
     lib/src/SessionManager.cc
     lib/src/StaticFileRouter.cc
+    lib/src/TaskTimeoutFlag.cc
     lib/src/Utilities.cc
     lib/src/WebSocketClientImpl.cc
     lib/src/WebSocketConnectionImpl.cc
@@ -477,6 +485,7 @@ set(ORM_HEADERS
     orm_lib/inc/drogon/orm/Field.h
     orm_lib/inc/drogon/orm/FunctionTraits.h
     orm_lib/inc/drogon/orm/Mapper.h
+    orm_lib/inc/drogon/orm/CoroMapper.h
     orm_lib/inc/drogon/orm/Result.h
     orm_lib/inc/drogon/orm/ResultIterator.h
     orm_lib/inc/drogon/orm/Row.h

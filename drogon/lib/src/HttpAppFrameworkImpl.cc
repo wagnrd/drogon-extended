@@ -958,7 +958,8 @@ HttpAppFramework &HttpAppFrameworkImpl::createDbClient(
     const std::string &filename,
     const std::string &name,
     const bool isFast,
-    const std::string &characterSet)
+    const std::string &characterSet,
+    double timeout)
 {
     assert(!running_);
     dbClientManagerPtr_->createDbClient(dbType,
@@ -971,7 +972,8 @@ HttpAppFramework &HttpAppFrameworkImpl::createDbClient(
                                         filename,
                                         name,
                                         isFast,
-                                        characterSet);
+                                        characterSet,
+                                        timeout);
     return *this;
 }
 
@@ -981,11 +983,12 @@ HttpAppFramework &HttpAppFrameworkImpl::createRedisClient(
     const std::string &name,
     const std::string &password,
     size_t connectionNum,
-    bool isFast)
+    bool isFast,
+    double timeout)
 {
     assert(!running_);
     redisClientManagerPtr_->createRedisClient(
-        name, ip, port, password, connectionNum, isFast);
+        name, ip, port, password, connectionNum, isFast, timeout);
     return *this;
 }
 void HttpAppFrameworkImpl::quit()
@@ -1012,10 +1015,11 @@ const HttpResponsePtr &HttpAppFrameworkImpl::getCustom404Page()
         static IOThreadStorage<HttpResponsePtr> thread404Pages;
         static std::once_flag once;
         std::call_once(once, [this] {
-            thread404Pages.init([this](HttpResponsePtr &resp, size_t index) {
-                resp = std::make_shared<HttpResponseImpl>(
-                    *static_cast<HttpResponseImpl *>(custom404_.get()));
-            });
+            thread404Pages.init(
+                [this](HttpResponsePtr &resp, size_t /*index*/) {
+                    resp = std::make_shared<HttpResponseImpl>(
+                        *static_cast<HttpResponseImpl *>(custom404_.get()));
+                });
         });
         return thread404Pages.getThreadData();
     }
@@ -1073,4 +1077,10 @@ const std::function<HttpResponsePtr(HttpStatusCode)>
 std::vector<trantor::InetAddress> HttpAppFrameworkImpl::getListeners() const
 {
     return listenerManagerPtr_->getListeners();
+}
+HttpAppFramework &HttpAppFrameworkImpl::setDefaultHandler(
+    DefaultHandler handler)
+{
+    staticFileRouterPtr_->setDefaultHandler(std::move(handler));
+    return *this;
 }

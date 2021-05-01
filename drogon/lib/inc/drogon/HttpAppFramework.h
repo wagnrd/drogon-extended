@@ -61,6 +61,9 @@ using ExceptionHandler =
     std::function<void(const std::exception &,
                        const HttpRequestPtr &,
                        std::function<void(const HttpResponsePtr &)> &&)>;
+using DefaultHandler =
+    std::function<void(const HttpRequestPtr &,
+                       std::function<void(const HttpResponsePtr &)> &&)>;
 
 class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
 {
@@ -578,6 +581,16 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
         return *this;
     }
 
+    /// Register a default handler into the framework when no handler matches
+    /// the request. If set, it is executed if the static file router does
+    /// not find any file corresponding to the request. Thus it replaces
+    /// the default 404 not found response.
+    /**
+     * @param function indicates any type of callable object with a valid
+     * processing interface.
+     */
+    virtual HttpAppFramework &setDefaultHandler(DefaultHandler handler) = 0;
+
     /// Forward the http request
     /**
      * @param req the HTTP request to be forwarded;
@@ -690,7 +703,7 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
        @endcode
      */
     inline HttpAppFramework &enableSession(
-        const std::chrono::duration<long double> &timeout)
+        const std::chrono::duration<double> &timeout)
     {
         return enableSession((size_t)timeout.count());
     }
@@ -946,7 +959,7 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
        @endcode
      */
     inline HttpAppFramework &setIdleConnectionTimeout(
-        const std::chrono::duration<long double> &timeout)
+        const std::chrono::duration<double> &timeout)
     {
         return setIdleConnectionTimeout((size_t)timeout.count());
     }
@@ -1209,6 +1222,9 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
      * @param filename The file name of sqlite3 database file.
      * @param name The client name.
      * @param isFast Indicates if the client is a fast database client.
+     * @param characterSet The character set of the database server.
+     * @param timeout The timeout in seconds for executing SQL queries. zero or
+     * negative value means no timeout.
      *
      * @note
      * This operation can be performed by an option in the configuration file.
@@ -1224,7 +1240,8 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
         const std::string &filename = "",
         const std::string &name = "default",
         const bool isFast = false,
-        const std::string &characterSet = "") = 0;
+        const std::string &characterSet = "",
+        double timeout = -1.0) = 0;
 
     /// Create a redis client
     /**
@@ -1244,7 +1261,8 @@ class DROGON_EXPORT HttpAppFramework : public trantor::NonCopyable
         const std::string &name = "default",
         const std::string &password = "",
         size_t connectionNum = 1,
-        bool isFast = false) = 0;
+        bool isFast = false,
+        double timeout = -1.0) = 0;
 
     /// Get the DNS resolver
     /**

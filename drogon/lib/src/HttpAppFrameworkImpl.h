@@ -191,6 +191,8 @@ class HttpAppFrameworkImpl final : public HttpAppFramework
         return *this;
     }
 
+    HttpAppFramework &setDefaultHandler(DefaultHandler handler) override;
+
     HttpAppFramework &enableSession(const size_t timeout) override
     {
         useSession_ = true;
@@ -450,13 +452,15 @@ class HttpAppFrameworkImpl final : public HttpAppFramework
                                      const std::string &filename,
                                      const std::string &name,
                                      bool isFast,
-                                     const std::string &characterSet) override;
+                                     const std::string &characterSet,
+                                     double timeout) override;
     HttpAppFramework &createRedisClient(const std::string &ip,
                                         unsigned short port,
                                         const std::string &name,
                                         const std::string &password,
                                         size_t connectionNum,
-                                        bool isFast) override;
+                                        bool isFast,
+                                        double timeout) override;
     nosql::RedisClientPtr getRedisClient(const std::string &name) override;
     nosql::RedisClientPtr getFastRedisClient(const std::string &name) override;
     std::vector<trantor::InetAddress> getListeners() const override;

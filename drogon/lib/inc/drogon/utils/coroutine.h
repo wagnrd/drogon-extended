@@ -576,7 +576,7 @@ namespace internal
 struct TimerAwaiter : CallbackAwaiter<void>
 {
     TimerAwaiter(trantor::EventLoop *loop,
-                 const std::chrono::duration<long double> &delay)
+                 const std::chrono::duration<double> &delay)
         : loop_(loop), delay_(delay.count())
     {
     }
@@ -597,7 +597,7 @@ struct TimerAwaiter : CallbackAwaiter<void>
 
 inline internal::TimerAwaiter sleepCoro(
     trantor::EventLoop *loop,
-    const std::chrono::duration<long double> &delay) noexcept
+    const std::chrono::duration<double> &delay) noexcept
 {
     assert(loop);
     return internal::TimerAwaiter(loop, delay);
@@ -609,5 +609,26 @@ inline internal::TimerAwaiter sleepCoro(trantor::EventLoop *loop,
     assert(loop);
     return internal::TimerAwaiter(loop, delay);
 }
+
+template <typename T, typename = std::void_t<>>
+struct is_resumable : std::false_type
+{
+};
+
+template <typename T>
+struct is_resumable<
+    T,
+    std::void_t<decltype(internal::getAwaiter(std::declval<T>()))>>
+    : std::true_type
+{
+};
+
+template <>
+struct is_resumable<AsyncTask, std::void_t<AsyncTask>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_resumable_v = is_resumable<T>::value;
 
 }  // namespace drogon

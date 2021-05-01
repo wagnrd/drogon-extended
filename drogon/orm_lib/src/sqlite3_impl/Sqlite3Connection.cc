@@ -16,6 +16,7 @@
 #include "Sqlite3ResultImpl.h"
 #include <drogon/utils/Utilities.h>
 #include <drogon/utils/string_view.h>
+#include <exception>
 #include <regex>
 #include <cctype>
 
@@ -28,15 +29,9 @@ void Sqlite3Connection::onError(
     const string_view &sql,
     const std::function<void(const std::exception_ptr &)> &exceptCallback)
 {
-    try
-    {
-        throw SqlError(sqlite3_errmsg(connectionPtr_.get()), std::string{sql});
-    }
-    catch (...)
-    {
-        auto exceptPtr = std::current_exception();
-        exceptCallback(exceptPtr);
-    }
+    auto exceptPtr = std::make_exception_ptr(
+        SqlError(sqlite3_errmsg(connectionPtr_.get()), std::string{sql}));
+    exceptCallback(exceptPtr);
 }
 
 Sqlite3Connection::Sqlite3Connection(
@@ -153,17 +148,10 @@ void Sqlite3Connection::execSqlInQueue(
                 return std::isspace(ch);
             }))
         {
-            try
-            {
-                throw SqlError(
-                    "Multiple semicolon separated statements are unsupported",
-                    std::string{sql});
-            }
-            catch (...)
-            {
-                auto exceptPtr = std::current_exception();
-                exceptCallback(exceptPtr);
-            }
+            auto exceptPtr = std::make_exception_ptr(SqlError(
+                "Multiple semicolon separated statements are unsupported",
+                std::string{sql}));
+            exceptCallback(exceptPtr);
             idleCb_();
             return;
         }
@@ -172,7 +160,7 @@ void Sqlite3Connection::execSqlInQueue(
     auto stmt = stmtPtr.get();
     for (int i = 0; i < (int)parameters.size(); ++i)
     {
-        int bindRet;
+        int bindRet{SQLITE_OK};
         switch (format[i])
         {
             case Sqlite3TypeChar:
@@ -205,6 +193,9 @@ void Sqlite3Connection::execSqlInQueue(
             case Sqlite3TypeNull:
                 bindRet = sqlite3_bind_null(stmt, i + 1);
                 break;
+            default:
+                LOG_FATAL << "SQLite does not recognize the parameter type";
+                abort();
         }
         if (bindRet != SQLITE_OK)
         {
