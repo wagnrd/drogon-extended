@@ -6,7 +6,7 @@
 #define HANDLE_GLOBAL_EXCEPTIONS                                                      \
         GlobalExceptionMapper::handle_global_exceptions([&] { throw; }, callback );   \
 
-#define HANDLE_CUSTOM_EXCEPTIONS_END(exceptionMapper)                       \
+#define HANDLE_CUSTOM_EXCEPTIONS(exceptionMapper)                       \
         GlobalExceptionMapper::handle_global_exceptions([&] {               \
             exceptionMapper.handle_exceptions([&] { throw; }, callback);    \
         }, callback );
