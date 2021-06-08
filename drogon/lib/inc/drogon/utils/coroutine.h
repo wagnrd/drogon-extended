@@ -413,9 +413,9 @@ struct AsyncTask final
     }
 };
 
-/// Helper class that provices the infrastructure for turning callback into
-/// corourines
-// The user is responsible to fill in `await_suspend()` and construtors.
+/// Helper class that provides the infrastructure for turning callback into
+/// coroutines
+// The user is responsible to fill in `await_suspend()` and constructors.
 template <typename T = void>
 struct CallbackAwaiter
 {
@@ -427,7 +427,7 @@ struct CallbackAwaiter
     const T &await_resume() const noexcept(false)
     {
         // await_resume() should always be called after co_await
-        // (await_suspend()) is called. Therefor the value should always be set
+        // (await_suspend()) is called. Therefore the value should always be set
         // (or there's an exception)
         assert(result_.has_value() == true || exception_ != nullptr);
 
@@ -437,7 +437,7 @@ struct CallbackAwaiter
     }
 
   private:
-    // HACK: Not all desired types are default contructable. But we need the
+    // HACK: Not all desired types are default constructable. But we need the
     // entire struct to be constructed for awaiting. std::optional takes care of
     // that.
     optional<T> result_;
@@ -576,7 +576,7 @@ namespace internal
 struct TimerAwaiter : CallbackAwaiter<void>
 {
     TimerAwaiter(trantor::EventLoop *loop,
-                 const std::chrono::duration<long double> &delay)
+                 const std::chrono::duration<double> &delay)
         : loop_(loop), delay_(delay.count())
     {
     }
@@ -597,7 +597,7 @@ struct TimerAwaiter : CallbackAwaiter<void>
 
 inline internal::TimerAwaiter sleepCoro(
     trantor::EventLoop *loop,
-    const std::chrono::duration<long double> &delay) noexcept
+    const std::chrono::duration<double> &delay) noexcept
 {
     assert(loop);
     return internal::TimerAwaiter(loop, delay);
@@ -609,5 +609,26 @@ inline internal::TimerAwaiter sleepCoro(trantor::EventLoop *loop,
     assert(loop);
     return internal::TimerAwaiter(loop, delay);
 }
+
+template <typename T, typename = std::void_t<>>
+struct is_resumable : std::false_type
+{
+};
+
+template <typename T>
+struct is_resumable<
+    T,
+    std::void_t<decltype(internal::getAwaiter(std::declval<T>()))>>
+    : std::true_type
+{
+};
+
+template <>
+struct is_resumable<AsyncTask, std::void_t<AsyncTask>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_resumable_v = is_resumable<T>::value;
 
 }  // namespace drogon

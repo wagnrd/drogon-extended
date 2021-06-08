@@ -19,6 +19,7 @@
 #include <trantor/utils/NonCopyable.h>
 #include <trantor/utils/Date.h>
 #include <trantor/utils/LockFreeQueue.h>
+#include <trantor/exports.h>
 #include <thread>
 #include <memory>
 #include <vector>
@@ -50,7 +51,7 @@ enum
  * the event loop of the thread it belongs to, or call that thread the thread of
  * the event loop.
  */
-class EventLoop : NonCopyable
+class TRANTOR_EXPORT EventLoop : NonCopyable
 {
   public:
     EventLoop();
@@ -163,12 +164,11 @@ class EventLoop : NonCopyable
        runAfter(10min, task);
        @endcode
      */
-    TimerId runAfter(const std::chrono::duration<long double> &delay,
-                     const Func &cb)
+    TimerId runAfter(const std::chrono::duration<double> &delay, const Func &cb)
     {
         return runAfter(delay.count(), cb);
     }
-    TimerId runAfter(const std::chrono::duration<long double> &delay, Func &&cb)
+    TimerId runAfter(const std::chrono::duration<double> &delay, Func &&cb)
     {
         return runAfter(delay.count(), std::move(cb));
     }
@@ -193,13 +193,12 @@ class EventLoop : NonCopyable
        runEvery(0.1h, task);
        @endcode
      */
-    TimerId runEvery(const std::chrono::duration<long double> &interval,
+    TimerId runEvery(const std::chrono::duration<double> &interval,
                      const Func &cb)
     {
         return runEvery(interval.count(), cb);
     }
-    TimerId runEvery(const std::chrono::duration<long double> &interval,
-                     Func &&cb)
+    TimerId runEvery(const std::chrono::duration<double> &interval, Func &&cb)
     {
         return runEvery(interval.count(), std::move(cb));
     }

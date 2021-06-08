@@ -56,7 +56,7 @@ AsyncFileLogger::~AsyncFileLogger()
         {
             writeBuffers_.push(logBufferPtr_);
         }
-        if (writeBuffers_.size() > 0)
+        while (!writeBuffers_.empty())
         {
             StringPtr tmpPtr = (StringPtr &&) writeBuffers_.front();
             writeBuffers_.pop();
@@ -150,7 +150,7 @@ void AsyncFileLogger::logThreadFunc()
             tmpBuffers_.swap(writeBuffers_);
         }
 
-        while (tmpBuffers_.size() > 0)
+        while (!tmpBuffers_.empty())
         {
             StringPtr tmpPtr = (StringPtr &&) tmpBuffers_.front();
             tmpBuffers_.pop();
@@ -184,10 +184,7 @@ AsyncFileLogger::LoggerFile::LoggerFile(const std::string &filePath,
 #ifndef _MSC_VER
     fp_ = fopen(fileFullName_.c_str(), "a");
 #else
-    if (fopen_s(&fp_, fileFullName_.c_str(), "a") != 0)
-    {
-        fp_ = nullptr;
-    }
+    fp_ = _fsopen(fileFullName_.c_str(), "a+", _SH_DENYWR);
 #endif
     if (fp_ == nullptr)
     {

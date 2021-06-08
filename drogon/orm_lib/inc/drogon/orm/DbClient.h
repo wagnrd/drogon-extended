@@ -13,6 +13,8 @@
  */
 
 #pragma once
+
+#include <drogon/exports.h>
 #include <drogon/orm/Exception.h>
 #include <drogon/orm/Field.h>
 #include <drogon/orm/Result.h>
@@ -67,7 +69,7 @@ struct SqlAwaiter : public CallbackAwaiter<Result>
     internal::SqlBinder binder_;
 };
 
-struct TrasactionAwaiter : public CallbackAwaiter<std::shared_ptr<Transaction>>
+struct TrasactionAwaiter : public CallbackAwaiter<std::shared_ptr<Transaction> >
 {
     TrasactionAwaiter(DbClient *client) : client_(client)
     {
@@ -84,7 +86,7 @@ struct TrasactionAwaiter : public CallbackAwaiter<std::shared_ptr<Transaction>>
 }  // namespace internal
 
 /// Database client abstract class
-class DbClient : public trantor::NonCopyable
+class DROGON_EXPORT DbClient : public trantor::NonCopyable
 {
   public:
     virtual ~DbClient(){};
@@ -169,8 +171,8 @@ class DbClient : public trantor::NonCopyable
         auto binder = *this << sql;
         (void)std::initializer_list<int>{
             (binder << std::forward<Arguments>(args), 0)...};
-        std::shared_ptr<std::promise<Result>> prom =
-            std::make_shared<std::promise<Result>>();
+        std::shared_ptr<std::promise<Result> > prom =
+            std::make_shared<std::promise<Result> >();
         binder >> [prom](const Result &r) { prom->set_value(r); };
         binder >>
             [prom](const std::exception_ptr &e) { prom->set_exception(e); };
@@ -234,11 +236,17 @@ class DbClient : public trantor::NonCopyable
      * automatically or manually rolled back, the callback will never be
      * executed. You can also use the setCommitCallback() method of a
      * transaction object to set the callback.
+     * @note A TimeoutError exception is thrown if the operation is timed out.
      */
     virtual std::shared_ptr<Transaction> newTransaction(
-        const std::function<void(bool)> &commitCallback = nullptr) = 0;
+        const std::function<void(bool)> &commitCallback =
+            std::function<void(bool)>()) noexcept(false) = 0;
 
     /// Create a transaction object in asynchronous mode.
+    /**
+     * @note An empty shared_ptr object is returned via the callback if the
+     * operation is timed out.
+     */
     virtual void newTransactionAsync(
         const std::function<void(const std::shared_ptr<Transaction> &)>
             &callback) = 0;
@@ -266,6 +274,18 @@ class DbClient : public trantor::NonCopyable
     {
         return connectionInfo_;
     }
+
+    /**
+     * @brief Set the Timeout value of execution of a SQL.
+     *
+     * @param timeout in seconds, if the SQL result is not returned from the
+     * server within the timeout, a TimeoutError exception with "SQL execution
+     * timeout" string is generated and returned to the caller.
+     * @note set the timeout value to zero or negative for no limit on time. The
+     * default value is -1.0, this means there is no time limit if this method
+     * is not called.
+     */
+    virtual void setTimeout(double timeout) = 0;
 
   private:
     friend internal::SqlBinder;
@@ -302,8 +322,8 @@ inline void internal::TrasactionAwaiter::await_suspend(
     client_->newTransactionAsync(
         [this, handle](const std::shared_ptr<Transaction> &transaction) {
             if (transaction == nullptr)
-                setException(std::make_exception_ptr(
-                    Failure("Failed to create transaction")));
+                setException(std::make_exception_ptr(TimeoutError(
+                    "Timeout, no connection available for transaction")));
             else
                 setValue(transaction);
             handle.resume();

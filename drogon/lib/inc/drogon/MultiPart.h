@@ -1,7 +1,7 @@
 /**
  *
  *  @file MultiPart.h
- *  An Tao
+ *  @author An Tao
  *
  *  Copyright 2018, An Tao.  All rights reserved.
  *  https://github.com/an-tao/drogon
@@ -14,8 +14,11 @@
 
 #pragma once
 
+#include <drogon/exports.h>
 #include <drogon/HttpRequest.h>
+#include <drogon/utils/string_view.h>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include <memory>
@@ -27,15 +30,26 @@ class HttpFileImpl;
  * @brief This class represents a uploaded file by a HTTP request.
  *
  */
-class HttpFile
+class DROGON_EXPORT HttpFile
 {
   public:
     HttpFile(std::shared_ptr<HttpFileImpl> &&implPtr);
     /// Return the file name;
     const std::string &getFileName() const;
 
+    /// Return the file extension;
+    /// Note: After the HttpFile object is destroyed, do not use this
+    /// string_view object.
+    string_view getFileExtension() const;
+
+    /// Return the name of the item in multiple parts.
+    const std::string &getItemName() const;
+
+    /// Return the type of file.
+    FileType getFileType() const;
+
     /// Set the file name, usually called by the MultiPartParser parser.
-    void setFileName(const std::string &filename);
+    void setFileName(const std::string &fileName);
 
     /// Set the contents of the file, usually called by the MultiPartParser
     /// parser.
@@ -59,11 +73,11 @@ class HttpFile
 
     /// Save the file to file system with a new name
     /**
-     * @param filename if the parameter isn't prefixed with "/", "./" or "../",
+     * @param fileName if the parameter isn't prefixed with "/", "./" or "../",
      * the full path is app().getUploadPath()+"/"+filename, otherwise the file
      * is saved as the filename
      */
-    int saveAs(const std::string &filename) const;
+    int saveAs(const std::string &fileName) const;
 
     /**
      * @brief return the content of the file.
@@ -99,7 +113,7 @@ class HttpFile
 
 /// A parser class which help the user to get the files and the parameters in
 /// the multipart format request.
-class MultiPartParser
+class DROGON_EXPORT MultiPartParser
 {
   public:
     MultiPartParser(){};
@@ -107,6 +121,9 @@ class MultiPartParser
     /// Get files, This method should be called after calling the parse()
     /// method.
     const std::vector<HttpFile> &getFiles() const;
+
+    /// Get files in a map, the keys of the map are item names of the files.
+    std::unordered_map<std::string, HttpFile> getFilesMap() const;
 
     /// Get parameters, This method should be called after calling the parse ()
     /// method.

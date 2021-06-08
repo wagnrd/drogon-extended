@@ -209,9 +209,13 @@ void HttpRequestImpl::appendToBuffer(trantor::MsgBuffer *output) const
     }
 
     std::string content;
-
-    if (!passThrough_ &&
-        (!parameters_.empty() && contentType_ != CT_MULTIPART_FORM_DATA))
+    if (passThrough_ && !query_.empty())
+    {
+        output->append("?");
+        output->append(query_);
+    }
+    if (!passThrough_ && !parameters_.empty() &&
+        contentType_ != CT_MULTIPART_FORM_DATA)
     {
         for (auto const &p : parameters_)
         {
@@ -221,7 +225,7 @@ void HttpRequestImpl::appendToBuffer(trantor::MsgBuffer *output) const
             content.append("&");
         }
         content.resize(content.length() - 1);
-        if (method_ == Get || method_ == Delete || method_ == Head)
+        if (contentType_ != CT_APPLICATION_X_FORM)
         {
             auto ret = std::find(output->peek(),
                                  (const char *)output->beginWrite(),
@@ -238,18 +242,6 @@ void HttpRequestImpl::appendToBuffer(trantor::MsgBuffer *output) const
                 output->append("?");
             }
             output->append(content);
-            content.clear();
-        }
-        else if (contentType_ == CT_APPLICATION_JSON)
-        {
-            /// Can't set parameters in content in this case
-            LOG_ERROR
-                << "You can't set parameters in the query string when the "
-                   "request content type is JSON and http method "
-                   "is POST or PUT";
-            LOG_ERROR << "Please put these parameters into the path or "
-                         "into the json "
-                         "string";
             content.clear();
         }
     }
@@ -318,24 +310,32 @@ void HttpRequestImpl::appendToBuffer(trantor::MsgBuffer *output) const
         }
     }
     assert(!(!content.empty() && !content_.empty()));
-    if (!passThrough_ && (!content.empty() || !content_.empty()))
+    if (!passThrough_)
     {
-        char buf[64];
-        auto len =
-            snprintf(buf,
-                     sizeof(buf),
-                     contentLengthFormatString<decltype(content.length())>(),
-                     content.length() + content_.length());
-        output->append(buf, len);
-        if (contentTypeString_.empty())
+        if (!content.empty() || !content_.empty())
         {
-            auto &type = webContentTypeToString(contentType_);
-            output->append(type.data(), type.length());
+            char buf[64];
+            auto len = snprintf(
+                buf,
+                sizeof(buf),
+                contentLengthFormatString<decltype(content.length())>(),
+                content.length() + content_.length());
+            output->append(buf, len);
+            if (contentTypeString_.empty())
+            {
+                auto &type = webContentTypeToString(contentType_);
+                output->append(type.data(), type.length());
+            }
         }
-    }
-    if (!passThrough_ && !contentTypeString_.empty())
-    {
-        output->append(contentTypeString_);
+        else if (method_ == Post || method_ == Put || method_ == Options ||
+                 method_ == Patch)
+        {
+            output->append("content-length: 0\r\n", 19);
+        }
+        if (!contentTypeString_.empty())
+        {
+            output->append(contentTypeString_);
+        }
     }
     for (auto it = headers_.begin(); it != headers_.end(); ++it)
     {

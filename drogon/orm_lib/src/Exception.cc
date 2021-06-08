@@ -10,8 +10,8 @@
 
 /**
  *
- *  Exception.cc
- *  An Tao
+ *  @file Exception.cc
+ *  @author An Tao
  *
  *  Copyright 2018, An Tao.  All rights reserved.
  *  https://github.com/an-tao/drogon
@@ -25,10 +25,6 @@
 #include <drogon/orm/Exception.h>
 
 using namespace drogon::orm;
-
-DrogonDbException::~DrogonDbException() noexcept
-{
-}
 
 Failure::Failure(const std::string &whatarg) : std::runtime_error(whatarg)
 {
@@ -90,7 +86,11 @@ DeadlockDetected::DeadlockDetected(const std::string &whatarg)
 }
 
 InternalError::InternalError(const std::string &whatarg)
-    : logic_error("libpqxx internal error: " + whatarg)
+    : logic_error("drogon database internal error: " + whatarg)
+{
+}
+
+TimeoutError::TimeoutError(const std::string &whatarg) : logic_error(whatarg)
 {
 }
 

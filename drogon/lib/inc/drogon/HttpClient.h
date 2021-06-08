@@ -14,6 +14,7 @@
  */
 #pragma once
 
+#include <drogon/exports.h>
 #include <drogon/HttpTypes.h>
 #include <drogon/drogon_callbacks.h>
 #include <drogon/HttpResponse.h>
@@ -66,9 +67,8 @@ struct HttpRespAwaiter : public CallbackAwaiter<HttpResponsePtr>
  * implementing the class, the shared_ptr is retained in the framework until all
  * response callbacks are invoked without fear of accidental deconstruction.
  *
- * TODO:SSL server verification
  */
-class HttpClient : public trantor::NonCopyable
+class DROGON_EXPORT HttpClient : public trantor::NonCopyable
 {
   public:
     /**
@@ -195,6 +195,15 @@ class HttpClient : public trantor::NonCopyable
      * methods will be sent to the server.
      */
     virtual void addCookie(const Cookie &cookie) = 0;
+
+    /**
+     * @brief Set the user_agent header, the default value is 'DrogonClient' if
+     * this method is not used.
+     *
+     * @param userAgent The user_agent value, if it is empty, the user_agent
+     * header is not sent to the server.
+     */
+    virtual void setUserAgent(const std::string &userAgent) = 0;
 
     /**
      * @brief Creaet a new HTTP client which use ip and port to connect to
