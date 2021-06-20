@@ -5,9 +5,9 @@
 
 #include <json/value.h>
 
-#include <drogon_extension/configuration/exceptions/invalid_env_var_exception.hpp>
-#include <drogon_extension/configuration/exceptions/invalid_config_var_exception.hpp>
-#include <drogon_extension/configuration/exceptions/invalid_config_obj_exception.hpp>
+#include <drogon_extended/configuration/exceptions/invalid_env_var_exception.hpp>
+#include <drogon_extended/configuration/exceptions/invalid_config_var_exception.hpp>
+#include <drogon_extended/configuration/exceptions/invalid_config_obj_exception.hpp>
 #include "configuration.hpp"
 
 template<class BaseConfigT>
