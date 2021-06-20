@@ -1,13 +1,22 @@
-#ifndef DATABASE_API_SECURITY_HPP
-#define DATABASE_API_SECURITY_HPP
+#ifndef DROGON_EXTENDED_SECURITY_HPP
+#define DROGON_EXTENDED_SECURITY_HPP
 
 #include <drogon/HttpResponse.h>
 #include <drogon/HttpRequest.h>
 
-#define SECURITY_GUARD(authorizationConfig)                                                     \
+#define MULTI_SECURITY_GUARD(authorizationConfig1, boolOperator, authorizationConfig2)          \
     auto authorization = request->getHeader("Authorization");                                   \
+    bool isUnauthorized;                                                                        \
+    bool isUnauthorized1;                                                                       \
+    bool isUnauthorized2;                                                                       \
                                                                                                 \
-    if (!(authorizationConfig))                                                                 \
+    authorizationConfig1                                                                        \
+    isUnauthorized1 = isUnauthorized;                                                           \
+                                                                                                \
+    authorizationConfig2                                                                        \
+    isUnauthorized2 = isUnauthorized;                                                           \
+                                                                                                \
+    if (isUnauthorized1 boolOperator isUnauthorized2)                                           \
     {                                                                                           \
         auto response = ExceptionMapper::build_exception_response(                              \
                                 drogon::HttpStatusCode::k401Unauthorized,                       \
@@ -18,12 +27,14 @@
         return;                                                                                 \
     }
 
+#define SECURITY_GUARD(authorizationConfig) MULTI_SECURITY_GUARD(authorizationConfig, AND, DUMMY_AUTHORIZATION(true))
+
 #define OR ||
-#define AND ||
+#define AND &&
+
+#define DUMMY_AUTHORIZATION(boolValue) isUnauthorized = boolValue;
 
 #define API_KEY(apiKey)                 \
-    [&] {                               \
-        return authorization == apiKey; \
-    }()
+    isUnauthorized = authorization != apiKey; \
 
-#endif //DATABASE_API_SECURITY_HPP
+#endif //DROGON_EXTENDED_SECURITY_HPP
