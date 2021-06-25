@@ -42,9 +42,10 @@ void test()
     auto verifier = jwt::verify()                                                       \
             .allow_algorithm(jwt::algorithm::rs256{publicKey})                          \
             .with_issuer(issuer);                                                       \
-    verifier.verify(decodedJwtToken);                                                   \
-                                                                                        \
-    if (jwt::error::rsa_error::ok
+    verifier.verify(decodedJwtToken, error);                                            \
+    LOG_DEBUG << "Error: " << error;                                                    \
+    LOG_DEBUG << "RSA_OK: " << jwt::error::rsa_error::ok;
+
 
 #define SECURITY_GUARD(authorizationConfig)                                                     \
     auto authorization = request->getHeader("Authorization");                                   \
