@@ -61,6 +61,7 @@ void test()
                                 "Authorization failed",                                         \
                                 "Provided authorization is invalid: '" + authorization + "'"    \
         );                                                                                      \
+                                                                                                \
         callback(response);                                                                     \
         return;                                                                                 \
     }
