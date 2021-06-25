@@ -19,9 +19,14 @@ add_library(
 add_subdirectory("lib/drogon")
 
 # jwt-cpp (JWT library)
-include_directories("lib/jwt-cpp")
+set(JWT_CPP_INCLUDES "lib/jwt-cpp/include")
 
-target_include_directories(drogon_extended PUBLIC "include")
+target_include_directories(
+        drogon_extended PUBLIC
+
+        "include"
+        ${JWT_CPP_INCLUDES}
+)
 
 target_link_libraries(
         drogon_extended PUBLIC
