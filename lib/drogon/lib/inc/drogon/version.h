@@ -2,4 +2,4 @@
 #define MINOR 6
 #define PATCH 0
 #define DROGON_VERSION "1.6.0"
-#define DROGON_VERSION_SHA1 "6eedfe776d5a1fa3fa4cf98c73bba5c4032d6eaf"
+#define DROGON_VERSION_SHA1 "2afee982efe252b78630584db0d8d07e5873c273"
