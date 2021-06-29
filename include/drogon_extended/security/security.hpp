@@ -7,7 +7,7 @@
 
 #define API_KEY(apiKey) isUnauthorized = authorization != (apiKey);
 
-#define JWT_TOKEN(issuer, publicKey)                                                            \
+#define JWT_TOKEN(publicKey)                                                                    \
     auto tokenType = authorization.substr(0, 6);                                                \
                                                                                                 \
     if (tokenType != "Bearer")                                                                  \
@@ -34,22 +34,19 @@
                                                                                                 \
     if (error.value() != static_cast<int>(jwt::error::token_verification_error::ok))            \
     {                                                                                           \
-        auto response = ExceptionMapper::build_exception_response(                              \
-                                drogon::HttpStatusCode::k401Unauthorized,                       \
-                                "Authorization failed",                                         \
-                                "Provided authorization is invalid: '" + authorization + "'"    \
-        );                                                                                      \
-                                                                                                \
-        callback(response);                                                                     \
-        return;                                                                                 \
+        LOG_DEBUG << error.message();                                                           \
+        isUnauthorized = true;                                                                  \
+    }                                                                                           \
+    else                                                                                        \
+    {                                                                                           \
+        isUnauthorized = false;                                                                 \
     }
-
 
 #define SECURITY_GUARD(authorizationConfig)                                                     \
     auto authorization = request->getHeader("Authorization");                                   \
     LOG_DEBUG << "Authorization: " << authorization;                                            \
                                                                                                 \
-    bool isUnauthorized;                                                                        \
+    bool isUnauthorized = true;                                                                 \
     authorizationConfig                                                                         \
                                                                                                 \
     if (isUnauthorized)                                                                         \
