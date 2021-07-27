@@ -61,4 +61,24 @@
         return;                                                                                 \
     }
 
+#define ASSERT_JWT_CONSTRAINT(jwtConstraint, expectedValue)                                          \
+    auto actualValue = decodedJwtToken.get_payload_claim("email")                                    \
+                                      .as_string();                                                  \
+    LOG_DEBUG << "Actual value:   " << actualValue << " - "                                          \
+              << "Expected value: " << expectedValue;                                                \
+                                                                                                     \
+    if (actualValue != expectedValue)                                                                \
+    {                                                                                                \
+        auto response = ExceptionMapper::build_exception_response(                                   \
+                                drogon::HttpStatusCode::k403Forbidden,                               \
+                                "JWT constraint violation",                                          \
+                                "Provided JWT token constraint for '" + std::string(jwtConstraint) + \
+                                "'  with value '" + actualValue + "' did not match with '" +         \
+                                std::string(expectedValue) + "'"                                     \
+        );                                                                                           \
+                                                                                                     \
+        callback(response);                                                                          \
+        return;                                                                                      \
+    }
+
 #endif //DROGON_EXTENDED_SECURITY_HPP
